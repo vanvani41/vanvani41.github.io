@@ -46,7 +46,23 @@
     <h1>Hello!</h1>
     <hr>
     <button class="smth">click on me pls!!</button>
-    <script></script>
+    <script>
+        $(document).ready(function(){
+            $('.smth').click(function(){
+                $.ajax({
+                    url: "https://my-json-server.typicode.com/vanvani41/a-new-repo"
+                    dataType: "json",
+                    success: function(result){
+                        const boredElem = document.getElementById("smth") || document.querySelector(".smth");
+                        boredElem.innerHTML = `<div class="boredapiserver"><p>Products: ${result.products}</p> <p>Users: ${inf.users}</p> </div>`;
+                    },
+                    error: function(xhr){
+                        console.log(xhr.statusText);
+                    }
+                })
+            });
+        })
+    </script>
 </main>
 </body>
 </html>
