@@ -6,7 +6,7 @@
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Api Thing</title>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js" defer></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <style>
         /* Minimal, neutral styling */
         :root{
@@ -45,16 +45,22 @@
 <main class="wrap">
     <h1>Hello!</h1>
     <hr>
-    <button class="smth">click on me pls!!</button>
+    <button class="smth">click on me pls!! (for products)</button>
+    <hr>
+    <div class="wrap" id="asds"></div>
     <script>
         $(document).ready(function(){
             $('.smth').click(function(){
                 $.ajax({
-                    url: "https://my-json-server.typicode.com/vanvani41/a-new-repo"
+                    url: "https://my-json-server.typicode.com/vanvani41/a-new-repo/products",
                     dataType: "json",
                     success: function(result){
-                        const boredElem = document.getElementById("smth") || document.querySelector(".smth");
-                        boredElem.innerHTML = `<div class="boredapiserver"><p>Products: ${result.products}</p> <p>Users: ${inf.users}</p> </div>`;
+                        const boredElem = document.getElementById("asds");
+                        console.log(result);
+                        boredElem.innerHTML = `
+                        <div class="boredapiserver">
+                        <p>Products: ${result.price}</p>
+                        </div>`;
                     },
                     error: function(xhr){
                         console.log(xhr.statusText);
