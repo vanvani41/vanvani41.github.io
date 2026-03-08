@@ -61,16 +61,18 @@
 </div>
 </main>
 <script>
+    let urlParams = new URLSearchParams(window.location.search);
+    let id = urlParams.get('id');
     let url = 'https://my-json-server.typicode.com/vanvani41/a-repo';
+    let profile = document.getElementById('profile');
 
-    fetch(url + '/users')
+    fetch(`${url}/users/${id}`)
         .then(async function(res){
-            let u = await res.json()
-            let uElem = document.getElementById('wrap1123');
-            uElem.innerHTML = `
-            <h2 class="user-name">${u.name}</h2> <h2 class="user-sirname"${u.sirname}></h2>
-            <img class="user-photo" src="${u.photo_url}" alt="${u.name}">
-            <p class="user-balance"><b>Balance:</b> ${u.balance}</p>
+            let u = await res.json();
+            profile.innerHTML = `
+            <h2>${u.name}</h2> <h2>${u.sirname}</h2>
+            <img>${u.photo_url}
+            <p>Balance: ${u.balance}</p>
             `;
         });
 </script>
