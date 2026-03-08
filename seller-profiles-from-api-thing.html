@@ -51,24 +51,25 @@
             justify-content: space-between;
         }
     </style>
-    <script>
-        let url = 'https://my-json-server.typicode.com/vanvani41/a-repo';
+</head>
+<body>
+<nav><a href="https://vanvani41.github.io/api-thing.html">Home</a></nav>
+<div class="wrap"></div>
+<script>
+    let url = 'https://my-json-server.typicode.com/vanvani41/a-repo';
 
-        fetch(url + '/users')
-            .then(async function(res){
-                let users = await res.json()
-                users.forEach(u => {
-                    let uElem = document.createElement("div.users-listbober");
-                    uElem.innerHTML = `
+    fetch(url + '/users')
+        .then(async function(res){
+            let users = await res.json()
+            users.forEach(u => {
+                let uElem = document.createElement("div.users-listbober");
+                uElem.innerHTML = `
                 <h2 class="user-name">${u.name}</h2> <h2 class="user-sirname"${u.sirname}></h2>
                 <img class="user-photo" src="${u.photo_url}" alt="${u.name}">
                 <p class="user-balance"><b>Balance:</b> ${u.balance}</p>
                 `;
-                })
-            });
-    </script>
-</head>
-<body>
-<nav><a href="https://vanvani41.github.io/api-thing.html">Home</a></nav>
+            })
+        });
+</script>
 </body>
 </html>
