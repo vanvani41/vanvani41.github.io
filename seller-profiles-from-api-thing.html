@@ -63,8 +63,7 @@
             let users = await res.json()
             users.forEach(u => {
                 let uElem = document.getElementById('wrap1123');
-                let uElem1 = uElem.createElement("div.users-listbober");
-                uElem1.innerHTML = `
+                uElem.innerHTML = `
                 <h2 class="user-name">${u.name}</h2> <h2 class="user-sirname"${u.sirname}></h2>
                 <img class="user-photo" src="${u.photo_url}" alt="${u.name}">
                 <p class="user-balance"><b>Balance:</b> ${u.balance}</p>
