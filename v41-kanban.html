@@ -28,20 +28,19 @@
             gap: 10px;
             flex-wrap: wrap;
             justify-content: center;
+            align-items: center;
             margin-bottom: 16px;
         }
 
         input,
-        button,
-        select {
+        button {
             border: none;
             border-radius: 12px;
             padding: 10px 12px;
             font-size: 14px;
         }
 
-        input,
-        select {
+        input {
             outline: none;
         }
 
@@ -68,9 +67,26 @@
             background: #dc2626;
         }
 
-        .lang-select {
-            background: #334155;
+        .lang-switch {
+            display: flex;
+            gap: 6px;
+            background: rgba(255,255,255,0.04);
+            padding: 4px;
+            border-radius: 12px;
+        }
+
+        .lang-btn {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.15);
             color: white;
+            padding: 8px 10px;
+            min-width: 44px;
+            border-radius: 10px;
+        }
+
+        .lang-btn.active {
+            background: #1d4ed8;
+            border-color: #3b82f6;
         }
 
         .status {
@@ -78,13 +94,15 @@
             opacity: 0.85;
             margin-bottom: 18px;
             font-size: 14px;
+            min-height: 18px;
         }
 
         .board {
             display: flex;
             gap: 20px;
             align-items: flex-start;
-            overflow-x: auto;
+            flex-wrap: wrap;
+            overflow-x: hidden;
             padding-bottom: 10px;
         }
 
@@ -94,8 +112,9 @@
             padding: 14px;
             min-width: 320px;
             width: 320px;
+            max-width: 100%;
             box-shadow: 0 8px 20px rgba(0,0,0,0.25);
-            flex-shrink: 0;
+            flex-shrink: 1;
         }
 
         .column-top {
@@ -195,76 +214,80 @@
 <div class="column-create-bar">
     <input type="text" id="newColumnInput">
     <button id="createColumnBtn" onclick="createColumn()">Створити колонку</button>
-    <select id="languageSelect" class="lang-select" onchange="changeLanguage(this.value)">
-        <option value="uk">Українська</option>
-        <option value="en">English</option>
-    </select>
+
+    <div class="lang-switch" id="langSwitch">
+        <button class="lang-btn" id="langEnBtn" onclick="changeLanguage('en')">EN (US)</button>
+        <button class="lang-btn" id="langUkBtn" onclick="changeLanguage('uk')">UA</button>
+    </div>
 </div>
 
 <div class="topbar">
-    <button id="saveBtn" class="save-btn" onclick="saveToV41File()">Зберегти .v41githubiokanban</button>
-    <button id="loadBtn" class="load-btn" onclick="document.getElementById('fileInput').click()">Відкрити .v41githubiokanban</button>
-    <input class="hidden-file-input" id="fileInput" type="file" accept=".v41githubiokanban,.txt,.cfg" onchange="loadFromFile(event)">
+    <button id="saveBtn" class="save-btn" onclick="saveToV41File()">Зберегти .v41kanban</button>
+    <button id="loadBtn" class="load-btn" onclick="document.getElementById('fileInput').click()">Відкрити .v41kanban</button>
+    <input class="hidden-file-input" id="fileInput" type="file" accept=".v41kanban,.txt,.cfg" onchange="loadFromFile(event)">
 </div>
 
-<div class="status" id="statusText">Готово.</div>
+<div class="status" id="statusText"></div>
 
 <div class="board" id="board"></div>
 
 <script>
+    const BOARD_VERSION = "0.7.2";
     let draggedTaskId = null;
-    let currentLanguage = "uk";
+    let currentLanguage = "enUS";
 
     const i18n = {
-        uk: {
+        ukUA: {
             createColumn: "Створити колонку",
-            saveFile: "Зберегти .v41githubiokanban",
-            loadFile: "Відкрити .v41githubiokanban",
+            saveFile: "Зберегти .v41kanban",
+            loadFile: "Відкрити .v41kanban",
             deleteColumn: "Видалити колонку",
             addTask: "Додати",
             newTask: "Нова задача...",
             empty: "Пусто",
-            ready: "Готово.",
             columnCreated: "Колонку створено.",
             columnDeleted: "Колонку видалено.",
             taskAdded: "Задачу додано.",
             taskEdited: "Задачу змінено.",
             taskDeleted: "Задачу видалено.",
             taskMoved: "Задачу переміщено.",
-            fileSaved: "Файл .v41githubiokanban збережено.",
+            fileSaved: "Файл .v41kanban збережено.",
             fileLoaded: "Файл успішно завантажено.",
             fileLoadError: "Помилка завантаження: ",
             fileReadError: "Не вдалося прочитати файл: ",
             editTaskPrompt: "Редагувати задачу:",
             columnBase: "Колонка",
+            fileNoVersion: "У файлі немає секції Version.",
             fileNoColumns: "У файлі немає секції Columns.",
             fileBadColumns: "Неправильний формат Columns.",
+            outdatedVersion: "Застаріла версія!",
             edit: "Edit",
             del: "Delete"
         },
-        en: {
+        enUS: {
             createColumn: "Create Column",
-            saveFile: "Save .v41githubiokanban",
-            loadFile: "Open .v41githubiokanban",
+            saveFile: "Save .v41kanban",
+            loadFile: "Open .v41kanban",
             deleteColumn: "Delete Column",
             addTask: "Add",
             newTask: "New task...",
             empty: "Empty",
-            ready: "Ready.",
             columnCreated: "Column created.",
             columnDeleted: "Column deleted.",
             taskAdded: "Task added.",
             taskEdited: "Task edited.",
             taskDeleted: "Task deleted.",
             taskMoved: "Task moved.",
-            fileSaved: "File .v41githubiokanban saved.",
+            fileSaved: "File .v41kanban saved.",
             fileLoaded: "File loaded successfully.",
             fileLoadError: "Load error: ",
             fileReadError: "Could not read file: ",
             editTaskPrompt: "Edit task:",
             columnBase: "Column",
+            fileNoVersion: "The file does not contain a Version section.",
             fileNoColumns: "The file does not contain a Columns section.",
             fileBadColumns: "Invalid Columns format.",
+            outdatedVersion: "Outdated version!",
             edit: "Edit",
             del: "Delete"
         }
@@ -272,6 +295,7 @@
 
     let boardData = {
         lastUpdated: new Date().toISOString(),
+        version: BOARD_VERSION,
         columns: []
     };
 
@@ -284,11 +308,12 @@
     }
 
     function updateStatus(text) {
-        document.getElementById("statusText").textContent = text;
+        document.getElementById("statusText").textContent = text || "";
     }
 
     function touchUpdated() {
         boardData.lastUpdated = new Date().toISOString();
+        boardData.version = BOARD_VERSION;
     }
 
     function escapeHtml(text) {
@@ -309,18 +334,17 @@
         document.getElementById("newColumnInput").placeholder = getDefaultColumnName(getNextColumnNumber());
     }
 
+    function updateLanguageButtons() {
+        document.getElementById("langEnBtn").classList.toggle("active", currentLanguage === "en");
+        document.getElementById("langUkBtn").classList.toggle("active", currentLanguage === "uk");
+    }
+
     function applyStaticTexts() {
         document.getElementById("createColumnBtn").textContent = t("createColumn");
         document.getElementById("saveBtn").textContent = t("saveFile");
         document.getElementById("loadBtn").textContent = t("loadFile");
-
-        const status = document.getElementById("statusText");
-        if (!status.dataset.custom || status.dataset.custom === "false") {
-            updateStatus(t("ready"));
-            status.dataset.custom = "false";
-        }
-
         updateNewColumnPlaceholder();
+        updateLanguageButtons();
     }
 
     function changeLanguage(lang) {
@@ -356,7 +380,6 @@
         touchUpdated();
         renderBoard();
         updateStatus(t("columnCreated"));
-        document.getElementById("statusText").dataset.custom = "true";
     }
 
     function deleteColumn(columnId) {
@@ -365,7 +388,6 @@
         reindexDefaultColumnNames();
         renderBoard();
         updateStatus(t("columnDeleted"));
-        document.getElementById("statusText").dataset.custom = "true";
     }
 
     function handleColumnNameInput(columnId, value) {
@@ -423,7 +445,6 @@
         touchUpdated();
         renderBoard();
         updateStatus(t("taskAdded"));
-        document.getElementById("statusText").dataset.custom = "true";
     }
 
     function editTask(columnId, taskId) {
@@ -443,7 +464,6 @@
         touchUpdated();
         renderBoard();
         updateStatus(t("taskEdited"));
-        document.getElementById("statusText").dataset.custom = "true";
     }
 
     function deleteTask(columnId, taskId) {
@@ -454,7 +474,6 @@
         touchUpdated();
         renderBoard();
         updateStatus(t("taskDeleted"));
-        document.getElementById("statusText").dataset.custom = "true";
     }
 
     function moveTask(taskId, targetColumnId) {
@@ -477,7 +496,6 @@
         touchUpdated();
         renderBoard();
         updateStatus(t("taskMoved"));
-        document.getElementById("statusText").dataset.custom = "true";
     }
 
     function renderBoard() {
@@ -525,6 +543,7 @@
         setupDragAndDrop();
         setupTaskInputEnters();
         updateNewColumnPlaceholder();
+        updateLanguageButtons();
     }
 
     function setupColumnNameInputs() {
@@ -652,6 +671,7 @@
         touchUpdated();
 
         const lines = [];
+        lines.push(`[Version: ${BOARD_VERSION}]`);
         lines.push(`[Last Updated: ${boardData.lastUpdated}]`);
         lines.push(`[Language: ${currentLanguage}]`);
         lines.push(`[Columns: {${boardData.columns.map(column => escapeFileValue(column.name)).join(", ")}}]`);
@@ -668,14 +688,17 @@
     function parseBoardData(content) {
         const lines = content.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
 
+        const versionLine = lines.find(line => line.startsWith("[Version:"));
         const lastUpdatedLine = lines.find(line => line.startsWith("[Last Updated:"));
         const languageLine = lines.find(line => line.startsWith("[Language:"));
         const columnsLine = lines.find(line => line.startsWith("[Columns:"));
 
-        if (!columnsLine) {
-            throw new Error(t("fileNoColumns"));
+        if (!versionLine || !columnsLine) {
+            alert(t("outdatedVersion"));
+            throw new Error(!versionLine ? t("fileNoVersion") : t("fileNoColumns"));
         }
 
+        const versionMatch = versionLine.match(/\[Version:\s*(.*?)\]/);
         const lastUpdatedMatch = lastUpdatedLine ? lastUpdatedLine.match(/\[Last Updated:\s*(.*?)\]/) : null;
         const languageMatch = languageLine ? languageLine.match(/\[Language:\s*(.*?)\]/) : null;
         const columnsMatch = columnsLine.match(/\[Columns:\s*\{([\s\S]*?)\}\]/);
@@ -684,10 +707,11 @@
             throw new Error(t("fileBadColumns"));
         }
 
+        const loadedVersion = versionMatch ? versionMatch[1].trim() : "";
         const loadedLanguage = languageMatch ? languageMatch[1].trim() : "uk";
-        if (loadedLanguage === "uk" || loadedLanguage === "en") {
+
+        if (loadedLanguage === "enUS" || loadedLanguage === "ukUA") {
             currentLanguage = loadedLanguage;
-            document.getElementById("languageSelect").value = currentLanguage;
         }
 
         const columnNamesRaw = splitEscaped(columnsMatch[1], ",").map(x => x.trim()).filter(x => x.length > 0);
@@ -722,6 +746,7 @@
 
         boardData = {
             lastUpdated: lastUpdatedMatch ? lastUpdatedMatch[1] : new Date().toISOString(),
+            version: loadedVersion || BOARD_VERSION,
             columns: columns
         };
 
@@ -735,14 +760,13 @@
 
         const a = document.createElement("a");
         a.href = url;
-        a.download = "board.v41githubiokanban";
+        a.download = "V41sKanbanBoard.v41kanban";
         document.body.appendChild(a);
         a.click();
         a.remove();
 
         URL.revokeObjectURL(url);
         updateStatus(t("fileSaved"));
-        document.getElementById("statusText").dataset.custom = "true";
     }
 
     function loadFromFile(event) {
@@ -757,10 +781,8 @@
                 applyStaticTexts();
                 renderBoard();
                 updateStatus(t("fileLoaded"));
-                document.getElementById("statusText").dataset.custom = "true";
             } catch (error) {
                 updateStatus(t("fileLoadError") + error.message);
-                document.getElementById("statusText").dataset.custom = "true";
                 alert(t("fileReadError") + error.message);
             }
         };
@@ -775,10 +797,9 @@
         }
     });
 
-    document.getElementById("languageSelect").value = currentLanguage;
-    document.getElementById("statusText").dataset.custom = "false";
     applyStaticTexts();
     renderBoard();
+    updateStatus("");
 </script>
 </body>
 </html>
