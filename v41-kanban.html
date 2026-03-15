@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>V41 Kanban</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V41's Kanban</title>
     <style>
         * {
             box-sizing: border-box;
@@ -18,12 +18,11 @@
         }
 
         h1 {
-            margin: 0 0 16px;
             text-align: center;
+            margin: 0 0 18px 0;
         }
 
-        .topbar,
-        .columns-editor {
+        .topbar, .column-create-bar {
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
@@ -31,23 +30,22 @@
             margin-bottom: 16px;
         }
 
-        input,
-        button {
+        input, button, select {
             border: none;
             border-radius: 10px;
             padding: 10px 12px;
             font-size: 14px;
         }
 
-        input {
+        input, select {
             outline: none;
         }
 
         button {
             cursor: pointer;
-            font-weight: bold;
-            background: #2563eb;
             color: white;
+            background: #2563eb;
+            font-weight: bold;
         }
 
         button:hover {
@@ -62,35 +60,69 @@
             background: #9333ea;
         }
 
-        .rename-btn {
-            background: #ea580c;
+        .delete-column-btn {
+            background: #dc2626;
+        }
+
+        .status {
+            text-align: center;
+            opacity: 0.85;
+            margin-bottom: 18px;
+            font-size: 14px;
         }
 
         .board {
             display: flex;
             gap: 20px;
-            justify-content: center;
             align-items: flex-start;
-            flex-wrap: wrap;
+            overflow-x: auto;
+            padding-bottom: 10px;
         }
 
         .column {
-            width: 320px;
-            min-height: 440px;
             background: #1e293b;
             border-radius: 16px;
             padding: 14px;
+            min-width: 320px;
+            width: 320px;
             box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+            flex-shrink: 0;
         }
 
-        .column h2 {
-            text-align: center;
-            margin: 0 0 12px;
-            font-size: 22px;
+        .column-top {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .column-name-input {
+            width: 100%;
+            font-size: 20px;
+            font-weight: bold;
+            background: #334155;
+            color: white;
+        }
+
+        .column-name-input::placeholder {
+            color: rgba(255,255,255,0.55);
+        }
+
+        .task-add-box {
+            display: flex;
+            gap: 8px;
+        }
+
+        .task-add-box input {
+            flex: 1;
+        }
+
+        .task-add-box button {
+            white-space: nowrap;
         }
 
         .task-list {
-            min-height: 320px;
+            min-height: 220px;
             border-radius: 12px;
             padding: 6px;
             transition: background 0.2s;
@@ -143,31 +175,20 @@
             padding-top: 18px;
         }
 
-        .status {
-            text-align: center;
-            margin-bottom: 16px;
-            opacity: 0.85;
-            font-size: 14px;
-        }
-
         .hidden-file-input {
             display: none;
         }
     </style>
 </head>
 <body>
-<h1>V41 Kanban</h1>
+<h1>V41's Kanban</h1>
 
-<div class="columns-editor">
-    <input type="text" id="columnName1" placeholder="Назва 1 колонки" value="Перший">
-    <input type="text" id="columnName2" placeholder="Назва 2 колонки" value="Другий">
-    <input type="text" id="columnName3" placeholder="Назва 3 колонки" value="Третій">
-    <button class="rename-btn" onclick="applyColumnNames()">Застосувати назви</button>
+<div class="column-create-bar">
+    <input type="text" id="newColumnInput" placeholder="Колонка 1">
+    <button onclick="createColumn()">Створити колонку</button>
 </div>
 
 <div class="topbar">
-    <input type="text" id="taskInput" placeholder="Введи нову задачу...">
-    <button onclick="addTask()">Додати</button>
     <button class="save-btn" onclick="saveToV41File()">Зберегти .v41githubiokanban</button>
     <button class="load-btn" onclick="document.getElementById('fileInput').click()">Відкрити .v41githubiokanban</button>
     <input class="hidden-file-input" id="fileInput" type="file" accept=".v41githubiokanban,.txt,.cfg" onchange="loadFromFile(event)">
@@ -175,36 +196,18 @@
 
 <div class="status" id="statusText">Готово.</div>
 
-<div class="board">
-    <div class="column">
-        <h2 id="columnTitle1">Перший</h2>
-        <div class="task-list" data-column="1"></div>
-    </div>
-
-    <div class="column">
-        <h2 id="columnTitle2">Другий</h2>
-        <div class="task-list" data-column="2"></div>
-    </div>
-
-    <div class="column">
-        <h2 id="columnTitle3">Третій</h2>
-        <div class="task-list" data-column="3"></div>
-    </div>
-</div>
+<div class="board" id="board"></div>
 
 <script>
     let draggedTaskId = null;
 
     let boardData = {
         lastUpdated: new Date().toISOString(),
-        columns: ["Перший", "Другий", "Третій"],
-        tasks: [
-            { id: createId(), text: "Приклад задачі", column: 1 }
-        ]
+        columns: []
     };
 
-    function createId() {
-        return "task_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+    function createId(prefix = "id") {
+        return prefix + "_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
     }
 
     function updateStatus(text) {
@@ -221,33 +224,81 @@
         return div.innerHTML;
     }
 
-    function applyColumnNames() {
-        const c1 = document.getElementById("columnName1").value.trim() || "Перший";
-        const c2 = document.getElementById("columnName2").value.trim() || "Другий";
-        const c3 = document.getElementById("columnName3").value.trim() || "Третій";
+    function getNextColumnNumber() {
+        return boardData.columns.length + 1;
+    }
 
-        boardData.columns = [c1, c2, c3];
+    function updateNewColumnPlaceholder() {
+        document.getElementById("newColumnInput").placeholder = "Колонка " + getNextColumnNumber();
+    }
+
+    function createColumn() {
+        const input = document.getElementById("newColumnInput");
+        let name = input.value.trim();
+
+        if (name === "") {
+            alert("Назву колонки не можна залишити пустим!");
+            return;
+        }
+
+        boardData.columns.push({
+            id: createId("column"),
+            name: name,
+            tasks: []
+        });
+
+        input.value = "";
         touchUpdated();
         renderBoard();
-        updateStatus("Назви колонок оновлено.");
+        updateStatus("Колонку створено.");
     }
 
-    function syncColumnInputs() {
-        document.getElementById("columnName1").value = boardData.columns[0] || "Перший";
-        document.getElementById("columnName2").value = boardData.columns[1] || "Другий";
-        document.getElementById("columnName3").value = boardData.columns[2] || "Третій";
+    function deleteColumn(columnId) {
+        boardData.columns = boardData.columns.filter(column => column.id !== columnId);
+        touchUpdated();
+        renderBoard();
+        updateStatus("Колонку видалено.");
     }
 
-    function addTask() {
-        const input = document.getElementById("taskInput");
+    function handleColumnNameInput(columnId, value) {
+        const column = boardData.columns.find(c => c.id === columnId);
+        if (!column) return;
+
+        column.name = value;
+        touchUpdated();
+        renderBoard(false);
+    }
+
+    function handleColumnNameBlur(columnId, inputElement) {
+        const column = boardData.columns.find(c => c.id === columnId);
+        if (!column) return;
+
+        const trimmed = inputElement.value.trim();
+
+        if (trimmed === "") {
+            alert("Назву колонки не можна залишити пустим!");
+            column.name = "Колонка";
+        } else {
+            column.name = trimmed;
+        }
+
+        touchUpdated();
+        renderBoard();
+    }
+
+    function addTask(columnId) {
+        const input = document.getElementById("taskInput_" + columnId);
+        if (!input) return;
+
         const text = input.value.trim();
+        if (text === "") return;
 
-        if (!text) return;
+        const column = boardData.columns.find(c => c.id === columnId);
+        if (!column) return;
 
-        boardData.tasks.push({
-            id: createId(),
-            text: text,
-            column: 1
+        column.tasks.push({
+            id: createId("task"),
+            text: text
         });
 
         input.value = "";
@@ -256,15 +307,18 @@
         updateStatus("Задачу додано.");
     }
 
-    function editTask(taskId) {
-        const task = boardData.tasks.find(t => t.id === taskId);
+    function editTask(columnId, taskId) {
+        const column = boardData.columns.find(c => c.id === columnId);
+        if (!column) return;
+
+        const task = column.tasks.find(t => t.id === taskId);
         if (!task) return;
 
         const newText = prompt("Редагувати задачу:", task.text);
         if (newText === null) return;
 
         const trimmed = newText.trim();
-        if (!trimmed) return;
+        if (trimmed === "") return;
 
         task.text = trimmed;
         touchUpdated();
@@ -272,75 +326,126 @@
         updateStatus("Задачу змінено.");
     }
 
-    function deleteTask(taskId) {
-        boardData.tasks = boardData.tasks.filter(t => t.id !== taskId);
+    function deleteTask(columnId, taskId) {
+        const column = boardData.columns.find(c => c.id === columnId);
+        if (!column) return;
+
+        column.tasks = column.tasks.filter(t => t.id !== taskId);
         touchUpdated();
         renderBoard();
         updateStatus("Задачу видалено.");
     }
 
-    function renderBoard() {
-        document.getElementById("columnTitle1").textContent = boardData.columns[0] || "Перший";
-        document.getElementById("columnTitle2").textContent = boardData.columns[1] || "Другий";
-        document.getElementById("columnTitle3").textContent = boardData.columns[2] || "Третій";
+    function moveTask(taskId, targetColumnId) {
+        let movedTask = null;
 
-        const lists = document.querySelectorAll(".task-list");
-        lists.forEach(list => list.innerHTML = "");
+        for (const column of boardData.columns) {
+            const index = column.tasks.findIndex(task => task.id === taskId);
+            if (index !== -1) {
+                movedTask = column.tasks.splice(index, 1)[0];
+                break;
+            }
+        }
 
-        for (const task of boardData.tasks) {
-            const taskEl = document.createElement("div");
-            taskEl.className = "task";
-            taskEl.draggable = true;
-            taskEl.dataset.id = task.id;
+        if (!movedTask) return;
 
-            taskEl.innerHTML = `
-                    <div class="task-text">${escapeHtml(task.text)}</div>
-                    <div class="task-buttons">
-                        <button class="edit-btn" onclick="editTask('${task.id}')">Edit</button>
-                        <button class="delete-btn" onclick="deleteTask('${task.id}')">Delete</button>
+        const targetColumn = boardData.columns.find(c => c.id === targetColumnId);
+        if (!targetColumn) return;
+
+        targetColumn.tasks.push(movedTask);
+        touchUpdated();
+        renderBoard();
+        updateStatus("Задачу переміщено.");
+    }
+
+    function renderBoard(updateFull = true) {
+        const board = document.getElementById("board");
+        board.innerHTML = "";
+
+        for (const column of boardData.columns) {
+            const columnEl = document.createElement("div");
+            columnEl.className = "column";
+
+            const tasksHtml = column.tasks.map(task => `
+                    <div class="task" draggable="true" data-task-id="${task.id}" data-column-id="${column.id}">
+                        <div class="task-text">${escapeHtml(task.text)}</div>
+                        <div class="task-buttons">
+                            <button class="edit-btn" onclick="editTask('${column.id}', '${task.id}')">Edit</button>
+                            <button class="delete-btn" onclick="deleteTask('${column.id}', '${task.id}')">Delete</button>
+                        </div>
+                    </div>
+                `).join("");
+
+            columnEl.innerHTML = `
+                    <div class="column-top">
+                        <input
+                            type="text"
+                            class="column-name-input"
+                            value="${escapeHtml(column.name)}"
+                            oninput="handleColumnNameInput('${column.id}', this.value)"
+                            onblur="handleColumnNameBlur('${column.id}', this)"
+                        >
+                        <button class="delete-column-btn" onclick="deleteColumn('${column.id}')">Видалити колонку</button>
+                        <div class="task-add-box">
+                            <input type="text" id="taskInput_${column.id}" placeholder="Нова задача...">
+                            <button onclick="addTask('${column.id}')">Додати</button>
+                        </div>
+                    </div>
+                    <div class="task-list" data-column-id="${column.id}">
+                        ${tasksHtml || '<div class="empty-text">Пусто</div>'}
                     </div>
                 `;
 
+            board.appendChild(columnEl);
+        }
+
+        setupDragAndDrop();
+        setupTaskInputEnters();
+        updateNewColumnPlaceholder();
+    }
+
+    function setupTaskInputEnters() {
+        for (const column of boardData.columns) {
+            const input = document.getElementById("taskInput_" + column.id);
+            if (!input) continue;
+
+            input.addEventListener("keydown", function(event) {
+                if (event.key === "Enter") {
+                    addTask(column.id);
+                }
+            });
+        }
+    }
+
+    function setupDragAndDrop() {
+        document.querySelectorAll(".task").forEach(taskEl => {
             taskEl.addEventListener("dragstart", () => {
-                draggedTaskId = task.id;
+                draggedTaskId = taskEl.dataset.taskId;
                 taskEl.classList.add("dragging");
             });
 
             taskEl.addEventListener("dragend", () => {
                 taskEl.classList.remove("dragging");
             });
-
-            const list = document.querySelector(`.task-list[data-column="${task.column}"]`);
-            if (list) list.appendChild(taskEl);
-        }
-
-        lists.forEach(list => {
-            if (list.children.length === 0) {
-                const empty = document.createElement("div");
-                empty.className = "empty-text";
-                empty.textContent = "Пусто";
-                list.appendChild(empty);
-            }
         });
 
-        syncColumnInputs();
-    }
+        document.querySelectorAll(".task-list").forEach(list => {
+            list.addEventListener("dragover", event => {
+                event.preventDefault();
+                list.classList.add("drag-over");
+            });
 
-    function serializeBoardData() {
-        touchUpdated();
+            list.addEventListener("dragleave", () => {
+                list.classList.remove("drag-over");
+            });
 
-        const safeColumns = boardData.columns.map(escapeFileValue);
-        const col1Tasks = boardData.tasks.filter(t => t.column === 1).map(t => escapeFileValue(t.text));
-        const col2Tasks = boardData.tasks.filter(t => t.column === 2).map(t => escapeFileValue(t.text));
-        const col3Tasks = boardData.tasks.filter(t => t.column === 3).map(t => escapeFileValue(t.text));
+            list.addEventListener("drop", () => {
+                list.classList.remove("drag-over");
 
-        return [
-            `[Last Updated: ${boardData.lastUpdated}]`,
-            `[Columns: {${safeColumns.join(", ")}}]`,
-            `[Column 1: {${col1Tasks.join("|")}}]`,
-            `[Column 2: {${col2Tasks.join("|")}}]`,
-            `[Column 3: {${col3Tasks.join("|")}}]`
-        ].join("\n");
+                if (!draggedTaskId) return;
+                moveTask(draggedTaskId, list.dataset.columnId);
+            });
+        });
     }
 
     function escapeFileValue(text) {
@@ -400,49 +505,66 @@
         return result;
     }
 
+    function serializeBoardData() {
+        touchUpdated();
+
+        const lines = [];
+        lines.push(`[Last Updated: ${boardData.lastUpdated}]`);
+        lines.push(`[Columns: {${boardData.columns.map(column => escapeFileValue(column.name)).join(", ")}}]`);
+
+        for (let i = 0; i < boardData.columns.length; i++) {
+            const column = boardData.columns[i];
+            const tasks = column.tasks.map(task => escapeFileValue(task.text)).join("|");
+            lines.push(`[Column ${i + 1}: {${tasks}}]`);
+        }
+
+        return lines.join("\n");
+    }
+
     function parseBoardData(content) {
-        const lastUpdatedMatch = content.match(/\[Last Updated:\s*(.*?)\]/);
-        const columnsMatch = content.match(/\[Columns:\s*\{([\s\S]*?)\}\]/);
-        const column1Match = content.match(/\[Column 1:\s*\{([\s\S]*?)\}\]/);
-        const column2Match = content.match(/\[Column 2:\s*\{([\s\S]*?)\}\]/);
-        const column3Match = content.match(/\[Column 3:\s*\{([\s\S]*?)\}\]/);
+        const lines = content.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
 
-        if (!columnsMatch || !column1Match || !column2Match || !column3Match) {
-            throw new Error("Файл має неправильний формат.");
+        const lastUpdatedLine = lines.find(line => line.startsWith("[Last Updated:"));
+        const columnsLine = lines.find(line => line.startsWith("[Columns:"));
+
+        if (!columnsLine) {
+            throw new Error("У файлі немає секції Columns.");
         }
 
-        const parsedColumnsRaw = splitEscaped(columnsMatch[1], ",").map(x => x.trim()).filter(Boolean);
-        const parsedColumns = [
-            unescapeFileValue(parsedColumnsRaw[0] || "Перший"),
-            unescapeFileValue(parsedColumnsRaw[1] || "Другий"),
-            unescapeFileValue(parsedColumnsRaw[2] || "Третій")
-        ];
+        const lastUpdatedMatch = lastUpdatedLine ? lastUpdatedLine.match(/\[Last Updated:\s*(.*?)\]/) : null;
+        const columnsMatch = columnsLine.match(/\[Columns:\s*\{([\s\S]*?)\}\]/);
 
-        const tasks = [];
-
-        function addTasksFromColumn(rawText, columnNumber) {
-            const trimmed = rawText.trim();
-            if (!trimmed) return;
-
-            const items = splitEscaped(trimmed, "|").filter(x => x.length > 0);
-
-            for (const item of items) {
-                tasks.push({
-                    id: createId(),
-                    text: unescapeFileValue(item),
-                    column: columnNumber
-                });
-            }
+        if (!columnsMatch) {
+            throw new Error("Неправильний формат Columns.");
         }
 
-        addTasksFromColumn(column1Match[1], 1);
-        addTasksFromColumn(column2Match[1], 2);
-        addTasksFromColumn(column3Match[1], 3);
+        const columnNamesRaw = splitEscaped(columnsMatch[1], ",").map(x => x.trim()).filter(x => x.length > 0);
+        const columns = columnNamesRaw.map(name => ({
+            id: createId("column"),
+            name: unescapeFileValue(name),
+            tasks: []
+        }));
+
+        for (let i = 0; i < columns.length; i++) {
+            const line = lines.find(line => line.startsWith(`[Column ${i + 1}:`));
+            if (!line) continue;
+
+            const match = line.match(new RegExp(`\\[Column ${i + 1}:\\s*\\{([\\s\\S]*?)\\}\\]`));
+            if (!match) continue;
+
+            const rawTasks = match[1].trim();
+            if (rawTasks === "") continue;
+
+            const taskTexts = splitEscaped(rawTasks, "|").filter(x => x.length > 0);
+            columns[i].tasks = taskTexts.map(taskText => ({
+                id: createId("task"),
+                text: unescapeFileValue(taskText)
+            }));
+        }
 
         boardData = {
             lastUpdated: lastUpdatedMatch ? lastUpdatedMatch[1] : new Date().toISOString(),
-            columns: parsedColumns,
-            tasks: tasks
+            columns: columns
         };
     }
 
@@ -483,35 +605,13 @@
         event.target.value = "";
     }
 
-    document.querySelectorAll(".task-list").forEach(list => {
-        list.addEventListener("dragover", (event) => {
-            event.preventDefault();
-            list.classList.add("drag-over");
-        });
-
-        list.addEventListener("dragleave", () => {
-            list.classList.remove("drag-over");
-        });
-
-        list.addEventListener("drop", () => {
-            list.classList.remove("drag-over");
-
-            if (!draggedTaskId) return;
-
-            const task = boardData.tasks.find(t => t.id === draggedTaskId);
-            if (!task) return;
-
-            task.column = Number(list.dataset.column);
-            touchUpdated();
-            renderBoard();
-            updateStatus("Задачу переміщено.");
-        });
+    document.getElementById("newColumnInput").addEventListener("keydown", function(event) {
+        if (event.key === "Enter") {
+            createColumn();
+        }
     });
 
-    document.getElementById("taskInput").addEventListener("keydown", (event) => {
-        if (event.key === "Enter") addTask();
-    });
-
+    updateNewColumnPlaceholder();
     renderBoard();
 </script>
 </body>
