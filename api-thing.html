@@ -97,9 +97,12 @@
         .smth:hover{
             background-color: rgb(170, 170, 255);
         }
-        .blacktext{
-            text-underline-color: #00000000;
+        .product a.blacktext,
+        .product a.blacktext:visited,
+        .product a.blacktext:hover,
+        .product a.blacktext:active{
             color: black !important;
+            text-underline-color: transparent;
         }
         @media screen and (max-width:1000px){
             #gridik338{
@@ -148,7 +151,7 @@
                 <img class="product-photo" src="${p.photo_url}" alt="${p.name}">
                 <p class="product-price"><b>Price:</b> ${p.price}</p>
                 <p class="product-description"><b>Description:</b> ${p.description}</p>
-                <a href="https://vanvani41.github.io/seller-profiles-from-api-thing.html?id=${p.author_id}">Seller's Profile</a>
+                <a href="https://vanvani41.github.io/seller-profiles-from-api-thing.html?id=${p.author_id}" class="blacktext">Seller's Profile</a>
                 <button class="blacktext">${p.buyordownloadbutton}<button/>
                 `;
                 productsGrid.append(pElem);
