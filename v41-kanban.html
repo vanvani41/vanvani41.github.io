@@ -22,7 +22,8 @@
             margin: 0 0 18px 0;
         }
 
-        .topbar, .column-create-bar {
+        .topbar,
+        .column-create-bar {
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
@@ -30,14 +31,17 @@
             margin-bottom: 16px;
         }
 
-        input, button, select {
+        input,
+        button,
+        select {
             border: none;
-            border-radius: 10px;
+            border-radius: 12px;
             padding: 10px 12px;
             font-size: 14px;
         }
 
-        input, select {
+        input,
+        select {
             outline: none;
         }
 
@@ -62,6 +66,11 @@
 
         .delete-column-btn {
             background: #dc2626;
+        }
+
+        .lang-select {
+            background: #334155;
+            color: white;
         }
 
         .status {
@@ -184,13 +193,17 @@
 <h1>V41's Kanban</h1>
 
 <div class="column-create-bar">
-    <input type="text" id="newColumnInput" placeholder="Колонка 1">
-    <button onclick="createColumn()">Створити колонку</button>
+    <input type="text" id="newColumnInput">
+    <button id="createColumnBtn" onclick="createColumn()">Створити колонку</button>
+    <select id="languageSelect" class="lang-select" onchange="changeLanguage(this.value)">
+        <option value="uk">Українська</option>
+        <option value="en">English</option>
+    </select>
 </div>
 
 <div class="topbar">
-    <button class="save-btn" onclick="saveToV41File()">Зберегти .v41githubiokanban</button>
-    <button class="load-btn" onclick="document.getElementById('fileInput').click()">Відкрити .v41githubiokanban</button>
+    <button id="saveBtn" class="save-btn" onclick="saveToV41File()">Зберегти .v41githubiokanban</button>
+    <button id="loadBtn" class="load-btn" onclick="document.getElementById('fileInput').click()">Відкрити .v41githubiokanban</button>
     <input class="hidden-file-input" id="fileInput" type="file" accept=".v41githubiokanban,.txt,.cfg" onchange="loadFromFile(event)">
 </div>
 
@@ -200,11 +213,71 @@
 
 <script>
     let draggedTaskId = null;
+    let currentLanguage = "uk";
+
+    const i18n = {
+        uk: {
+            createColumn: "Створити колонку",
+            saveFile: "Зберегти .v41githubiokanban",
+            loadFile: "Відкрити .v41githubiokanban",
+            deleteColumn: "Видалити колонку",
+            addTask: "Додати",
+            newTask: "Нова задача...",
+            empty: "Пусто",
+            ready: "Готово.",
+            columnCreated: "Колонку створено.",
+            columnDeleted: "Колонку видалено.",
+            taskAdded: "Задачу додано.",
+            taskEdited: "Задачу змінено.",
+            taskDeleted: "Задачу видалено.",
+            taskMoved: "Задачу переміщено.",
+            fileSaved: "Файл .v41githubiokanban збережено.",
+            fileLoaded: "Файл успішно завантажено.",
+            fileLoadError: "Помилка завантаження: ",
+            fileReadError: "Не вдалося прочитати файл: ",
+            editTaskPrompt: "Редагувати задачу:",
+            columnBase: "Колонка",
+            fileNoColumns: "У файлі немає секції Columns.",
+            fileBadColumns: "Неправильний формат Columns.",
+            edit: "Edit",
+            del: "Delete"
+        },
+        en: {
+            createColumn: "Create Column",
+            saveFile: "Save .v41githubiokanban",
+            loadFile: "Open .v41githubiokanban",
+            deleteColumn: "Delete Column",
+            addTask: "Add",
+            newTask: "New task...",
+            empty: "Empty",
+            ready: "Ready.",
+            columnCreated: "Column created.",
+            columnDeleted: "Column deleted.",
+            taskAdded: "Task added.",
+            taskEdited: "Task edited.",
+            taskDeleted: "Task deleted.",
+            taskMoved: "Task moved.",
+            fileSaved: "File .v41githubiokanban saved.",
+            fileLoaded: "File loaded successfully.",
+            fileLoadError: "Load error: ",
+            fileReadError: "Could not read file: ",
+            editTaskPrompt: "Edit task:",
+            columnBase: "Column",
+            fileNoColumns: "The file does not contain a Columns section.",
+            fileBadColumns: "Invalid Columns format.",
+            edit: "Edit",
+            del: "Delete"
+        }
+    };
 
     let boardData = {
         lastUpdated: new Date().toISOString(),
         columns: []
     };
+
+    function t(key) {
+        return i18n[currentLanguage][key] || key;
+    }
 
     function createId(prefix = "id") {
         return prefix + "_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
@@ -224,40 +297,75 @@
         return div.innerHTML;
     }
 
+    function getDefaultColumnName(index) {
+        return `${t("columnBase")} ${index}`;
+    }
+
     function getNextColumnNumber() {
         return boardData.columns.length + 1;
     }
 
     function updateNewColumnPlaceholder() {
-        document.getElementById("newColumnInput").placeholder = "Колонка " + getNextColumnNumber();
+        document.getElementById("newColumnInput").placeholder = getDefaultColumnName(getNextColumnNumber());
+    }
+
+    function applyStaticTexts() {
+        document.getElementById("createColumnBtn").textContent = t("createColumn");
+        document.getElementById("saveBtn").textContent = t("saveFile");
+        document.getElementById("loadBtn").textContent = t("loadFile");
+
+        const status = document.getElementById("statusText");
+        if (!status.dataset.custom || status.dataset.custom === "false") {
+            updateStatus(t("ready"));
+            status.dataset.custom = "false";
+        }
+
+        updateNewColumnPlaceholder();
+    }
+
+    function changeLanguage(lang) {
+        currentLanguage = lang;
+        applyStaticTexts();
+
+        boardData.columns.forEach((column, index) => {
+            if (column.isDefaultName) {
+                column.name = getDefaultColumnName(index + 1);
+            }
+        });
+
+        renderBoard();
     }
 
     function createColumn() {
         const input = document.getElementById("newColumnInput");
+        const placeholderName = getDefaultColumnName(getNextColumnNumber());
         let name = input.value.trim();
 
         if (name === "") {
-            alert("Назву колонки не можна залишити пустим!");
-            return;
+            name = placeholderName;
         }
 
         boardData.columns.push({
             id: createId("column"),
             name: name,
-            tasks: []
+            tasks: [],
+            isDefaultName: name === placeholderName
         });
 
         input.value = "";
         touchUpdated();
         renderBoard();
-        updateStatus("Колонку створено.");
+        updateStatus(t("columnCreated"));
+        document.getElementById("statusText").dataset.custom = "true";
     }
 
     function deleteColumn(columnId) {
         boardData.columns = boardData.columns.filter(column => column.id !== columnId);
         touchUpdated();
+        reindexDefaultColumnNames();
         renderBoard();
-        updateStatus("Колонку видалено.");
+        updateStatus(t("columnDeleted"));
+        document.getElementById("statusText").dataset.custom = "true";
     }
 
     function handleColumnNameInput(columnId, value) {
@@ -265,25 +373,35 @@
         if (!column) return;
 
         column.name = value;
-        touchUpdated();
-        renderBoard(false);
+        column.isDefaultName = false;
     }
 
     function handleColumnNameBlur(columnId, inputElement) {
-        const column = boardData.columns.find(c => c.id === columnId);
-        if (!column) return;
+        const columnIndex = boardData.columns.findIndex(c => c.id === columnId);
+        if (columnIndex === -1) return;
 
+        const column = boardData.columns[columnIndex];
         const trimmed = inputElement.value.trim();
+        const fallbackName = getDefaultColumnName(columnIndex + 1);
 
         if (trimmed === "") {
-            alert("Назву колонки не можна залишити пустим!");
-            column.name = "Колонка";
+            column.name = fallbackName;
+            column.isDefaultName = true;
         } else {
             column.name = trimmed;
+            column.isDefaultName = false;
         }
 
+        inputElement.value = column.name;
         touchUpdated();
-        renderBoard();
+    }
+
+    function reindexDefaultColumnNames() {
+        boardData.columns.forEach((column, index) => {
+            if (column.isDefaultName) {
+                column.name = getDefaultColumnName(index + 1);
+            }
+        });
     }
 
     function addTask(columnId) {
@@ -304,7 +422,8 @@
         input.value = "";
         touchUpdated();
         renderBoard();
-        updateStatus("Задачу додано.");
+        updateStatus(t("taskAdded"));
+        document.getElementById("statusText").dataset.custom = "true";
     }
 
     function editTask(columnId, taskId) {
@@ -314,7 +433,7 @@
         const task = column.tasks.find(t => t.id === taskId);
         if (!task) return;
 
-        const newText = prompt("Редагувати задачу:", task.text);
+        const newText = prompt(t("editTaskPrompt"), task.text);
         if (newText === null) return;
 
         const trimmed = newText.trim();
@@ -323,7 +442,8 @@
         task.text = trimmed;
         touchUpdated();
         renderBoard();
-        updateStatus("Задачу змінено.");
+        updateStatus(t("taskEdited"));
+        document.getElementById("statusText").dataset.custom = "true";
     }
 
     function deleteTask(columnId, taskId) {
@@ -333,7 +453,8 @@
         column.tasks = column.tasks.filter(t => t.id !== taskId);
         touchUpdated();
         renderBoard();
-        updateStatus("Задачу видалено.");
+        updateStatus(t("taskDeleted"));
+        document.getElementById("statusText").dataset.custom = "true";
     }
 
     function moveTask(taskId, targetColumnId) {
@@ -355,10 +476,11 @@
         targetColumn.tasks.push(movedTask);
         touchUpdated();
         renderBoard();
-        updateStatus("Задачу переміщено.");
+        updateStatus(t("taskMoved"));
+        document.getElementById("statusText").dataset.custom = "true";
     }
 
-    function renderBoard(updateFull = true) {
+    function renderBoard() {
         const board = document.getElementById("board");
         board.innerHTML = "";
 
@@ -370,8 +492,8 @@
                     <div class="task" draggable="true" data-task-id="${task.id}" data-column-id="${column.id}">
                         <div class="task-text">${escapeHtml(task.text)}</div>
                         <div class="task-buttons">
-                            <button class="edit-btn" onclick="editTask('${column.id}', '${task.id}')">Edit</button>
-                            <button class="delete-btn" onclick="deleteTask('${column.id}', '${task.id}')">Delete</button>
+                            <button class="edit-btn" onclick="editTask('${column.id}', '${task.id}')">${t("edit")}</button>
+                            <button class="delete-btn" onclick="deleteTask('${column.id}', '${task.id}')">${t("del")}</button>
                         </div>
                     </div>
                 `).join("");
@@ -382,26 +504,47 @@
                             type="text"
                             class="column-name-input"
                             value="${escapeHtml(column.name)}"
-                            oninput="handleColumnNameInput('${column.id}', this.value)"
-                            onblur="handleColumnNameBlur('${column.id}', this)"
+                            placeholder="${escapeHtml(column.name)}"
+                            data-column-id="${column.id}"
                         >
-                        <button class="delete-column-btn" onclick="deleteColumn('${column.id}')">Видалити колонку</button>
+                        <button class="delete-column-btn" onclick="deleteColumn('${column.id}')">${t("deleteColumn")}</button>
                         <div class="task-add-box">
-                            <input type="text" id="taskInput_${column.id}" placeholder="Нова задача...">
-                            <button onclick="addTask('${column.id}')">Додати</button>
+                            <input type="text" id="taskInput_${column.id}" placeholder="${t("newTask")}">
+                            <button onclick="addTask('${column.id}')">${t("addTask")}</button>
                         </div>
                     </div>
                     <div class="task-list" data-column-id="${column.id}">
-                        ${tasksHtml || '<div class="empty-text">Пусто</div>'}
+                        ${tasksHtml || `<div class="empty-text">${t("empty")}</div>`}
                     </div>
                 `;
 
             board.appendChild(columnEl);
         }
 
+        setupColumnNameInputs();
         setupDragAndDrop();
         setupTaskInputEnters();
         updateNewColumnPlaceholder();
+    }
+
+    function setupColumnNameInputs() {
+        document.querySelectorAll(".column-name-input").forEach(input => {
+            const columnId = input.dataset.columnId;
+
+            input.addEventListener("input", function() {
+                handleColumnNameInput(columnId, this.value);
+            });
+
+            input.addEventListener("blur", function() {
+                handleColumnNameBlur(columnId, this);
+            });
+
+            input.addEventListener("keydown", function(event) {
+                if (event.key === "Enter") {
+                    this.blur();
+                }
+            });
+        });
     }
 
     function setupTaskInputEnters() {
@@ -510,6 +653,7 @@
 
         const lines = [];
         lines.push(`[Last Updated: ${boardData.lastUpdated}]`);
+        lines.push(`[Language: ${currentLanguage}]`);
         lines.push(`[Columns: {${boardData.columns.map(column => escapeFileValue(column.name)).join(", ")}}]`);
 
         for (let i = 0; i < boardData.columns.length; i++) {
@@ -525,25 +669,39 @@
         const lines = content.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
 
         const lastUpdatedLine = lines.find(line => line.startsWith("[Last Updated:"));
+        const languageLine = lines.find(line => line.startsWith("[Language:"));
         const columnsLine = lines.find(line => line.startsWith("[Columns:"));
 
         if (!columnsLine) {
-            throw new Error("У файлі немає секції Columns.");
+            throw new Error(t("fileNoColumns"));
         }
 
         const lastUpdatedMatch = lastUpdatedLine ? lastUpdatedLine.match(/\[Last Updated:\s*(.*?)\]/) : null;
+        const languageMatch = languageLine ? languageLine.match(/\[Language:\s*(.*?)\]/) : null;
         const columnsMatch = columnsLine.match(/\[Columns:\s*\{([\s\S]*?)\}\]/);
 
         if (!columnsMatch) {
-            throw new Error("Неправильний формат Columns.");
+            throw new Error(t("fileBadColumns"));
+        }
+
+        const loadedLanguage = languageMatch ? languageMatch[1].trim() : "uk";
+        if (loadedLanguage === "uk" || loadedLanguage === "en") {
+            currentLanguage = loadedLanguage;
+            document.getElementById("languageSelect").value = currentLanguage;
         }
 
         const columnNamesRaw = splitEscaped(columnsMatch[1], ",").map(x => x.trim()).filter(x => x.length > 0);
-        const columns = columnNamesRaw.map(name => ({
-            id: createId("column"),
-            name: unescapeFileValue(name),
-            tasks: []
-        }));
+        const columns = columnNamesRaw.map((name, index) => {
+            const realName = unescapeFileValue(name);
+            const defaultName = getDefaultColumnName(index + 1);
+
+            return {
+                id: createId("column"),
+                name: realName,
+                tasks: [],
+                isDefaultName: realName === defaultName
+            };
+        });
 
         for (let i = 0; i < columns.length; i++) {
             const line = lines.find(line => line.startsWith(`[Column ${i + 1}:`));
@@ -566,6 +724,8 @@
             lastUpdated: lastUpdatedMatch ? lastUpdatedMatch[1] : new Date().toISOString(),
             columns: columns
         };
+
+        reindexDefaultColumnNames();
     }
 
     function saveToV41File() {
@@ -581,7 +741,8 @@
         a.remove();
 
         URL.revokeObjectURL(url);
-        updateStatus("Файл .v41githubiokanban збережено.");
+        updateStatus(t("fileSaved"));
+        document.getElementById("statusText").dataset.custom = "true";
     }
 
     function loadFromFile(event) {
@@ -593,11 +754,14 @@
         reader.onload = function(e) {
             try {
                 parseBoardData(String(e.target.result || ""));
+                applyStaticTexts();
                 renderBoard();
-                updateStatus("Файл успішно завантажено.");
+                updateStatus(t("fileLoaded"));
+                document.getElementById("statusText").dataset.custom = "true";
             } catch (error) {
-                updateStatus("Помилка завантаження: " + error.message);
-                alert("Не вдалося прочитати файл: " + error.message);
+                updateStatus(t("fileLoadError") + error.message);
+                document.getElementById("statusText").dataset.custom = "true";
+                alert(t("fileReadError") + error.message);
             }
         };
 
@@ -611,7 +775,9 @@
         }
     });
 
-    updateNewColumnPlaceholder();
+    document.getElementById("languageSelect").value = currentLanguage;
+    document.getElementById("statusText").dataset.custom = "false";
+    applyStaticTexts();
     renderBoard();
 </script>
 </body>
