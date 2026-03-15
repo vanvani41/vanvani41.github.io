@@ -80,9 +80,14 @@
         .then(async function(res){
             let u = await res.json();
             profile.innerHTML = `
-            <h2>${u.name}</h2> <h2>${u.sirname}</h2>
+            <div class="wrap">
             <img>${u.photo_url}
+            <h2>${u.name}</h2>
+            <h2>${u.sirname}</h2>
+            </div>
+            <div class="wrap">
             <p>Balance: ${u.balance}</p>
+            </div>
             `;
         });
 </script>
